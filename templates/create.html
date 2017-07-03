@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="row">
+      <div class="col-md-12">
+            <br>
+            <h3 class="text-uppercase" align="center">NEW ITEM</h3>
+        </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-12">
+        <form method="post">
+          <div class="form-group">
+          <label>Name</label>
+          <input name="name" class="form-control" placeholder="Name" value="{{name}}">
+          </div>
+          <div class="form-group">
+          <label>Price</label>
+          <input name="price" class="form-control" placeholder="Price" value="{{price}}">
+          </div>
+          <div class="form-group">
+          <label>Course</label>
+          <input name="course" class="form-control" placeholder="Course" value="{{course}}">
+          </div>
+
+          <div class="form-group">
+          <label>Description</label>
+          <textarea name="description" class="form-control"  placeholder="description" rows="10">{{description}}</textarea>
+          <br>
+          <label class="error">{{error}}</label>
+          </div>
+          <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+        <br>
+      </div>
+    </div>
+{% endblock %}

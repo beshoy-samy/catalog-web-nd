@@ -1,0 +1,28 @@
+body {
+    font-family: "Lato", sans-serif;
+    font-weight: 300;
+}
+
+h2 {
+    color: #7d97ad;
+}
+
+h3,p {
+    color: #2d3c49;
+}
+
+.text-thin {
+    font-weight: 100;
+}
+
+h1 {
+    color: white;
+}
+
+.style-text{
+    color: white;
+}
+
+.google-button{
+    margin-top: 10px;
+}

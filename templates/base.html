@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.css') }}">
+    <script src="{{ url_for('static', filename='js/jquery-3.1.1.min.js') }}"></script>
+    <script src="//apis.google.com/js/platform.js?onload=start"> </script>
+    <title>Amazing Restaurants</title>
+</head>
+
+<body background="/static/images/food.jpg">
+
+    <script>
+      window.fbAsyncInit = function() {
+        FB.init({
+          appId      : '1911184289206704',
+          cookie     : true,
+          xfbml      : true,
+          version    : 'v2.8'
+        });
+        FB.AppEvents.logPageView();
+      };
+
+      (function(d, s, id){
+         var js, fjs = d.getElementsByTagName(s)[0];
+         if (d.getElementById(id)) {return;}
+         js = d.createElement(s); js.id = id;
+         js.src = "//connect.facebook.net/en_US/sdk.js#xfbml=1&version=v2.9&appId=1911184289206704";
+         fjs.parentNode.insertBefore(js, fjs);
+       }(document, 'script', 'facebook-jssdk'));
+    </script>
+    <div class="container">
+        {% if state is none %}
+            <div class="row">
+                <div class="col-md-4 col-md-offset-4 text-center">
+                            <div class="panel panel-default">
+                              <div class="panel-heading">
+                                <h3 class="panel-title">Please, sign in!</h3>
+                            </div>
+                              <div class="panel-body">
+                                <form method="post">
+                                    <div class="form-group">
+                                      <input class="form-control" placeholder="UserName" name="username" type="text">
+                                  </div>
+                                  <div class="form-group">
+                                    <input class="form-control" placeholder="Password" name="password" type="password" >
+                                  </div>
+                                  <div class="register">
+                                    <a href="{{ url_for('register') }}">REGISTER NOW</a>
+                                  </div>
+                                  <div class="text-center" id="error">
+                                    <p class="error"> {{error}} </p>
+                                  </div>
+                                  <input class="btn btn-lg btn-success btn-block" type="submit" value="Login">
+                                  </form>
+                              </div>
+                          </div>
+                    </div>
+            </div>
+            <div class="row text-center">
+                <div class="fb-login-button"
+                        onlogin="getUserFBAccessToken();"
+                        data-max-rows="1"
+                        data-size="medium"
+                        data-button-type="continue_with"
+                        data-show-faces="false"
+                        data-auto-logout-link="false"
+                        data-scope="public_profile,email">
+                    </div>
+            </div>
+            <div class="row text-center google-button">
+                <div class="btn-group btn-group-justified">
+                          <div id="signInButton">
+                            <span class="g-signin"
+                               data-scope="openid email"
+                               data-clientid="121997835616-2pu40hf96vlcd8h3mfsegg9ksu45uta7.apps.googleusercontent.com"
+                               data-redirecturi="postmessage"
+                               data-accesstype="offline"
+                               data-cookiepolicy="single_host_origin"
+                               data-callback="googleCallback"
+                               data-approvalprompt="force">
+                            </span>
+                          </div>
+                    </div>
+            </div>
+        {% else %}
+            <div class="row ">
+                    <div class="md-col-12 text-left text-center">
+                    <form method="POST" action="{{ url_for('logout')}}"><button class="btn btn-primary" type="submit">Logout</button></form>
+                    </div>
+            </div>
+        {% endif %}
+        {% block content %}
+        {% endblock %}
+    </div>
+
+    <script>
+        function getUserFBAccessToken() {
+              FB.getLoginStatus(function(response) {
+                    if (response.status === 'connected') {
+                        var uid = response.authResponse.userID;
+                        var accessToken = response.authResponse.accessToken;
+                        console.log(accessToken);
+                        $.ajax({
+                              type: 'POST',
+                              url: '/fbLogin',
+                              processData: false,
+                              data: accessToken,
+                              contentType: 'application/octet-stream; charset=utf-8',
+                              success: function(result) {
+                                // Handle or verify the server response if necessary.
+                                if (result) {
+                                setTimeout(function() {
+                                  window.location.href = "/restaurants";
+                                 }, 4000);
+
+                              } else {
+                                console.log("failed")
+                                 }
+                              }
+                                });
+              }
+                });
+            }
+    </script>
+
+    <script>
+        function googleCallback(authResult) {
+              if (authResult['code']) {
+                $('#signinButton').attr('style', 'display: none');
+                $.ajax({
+                  type: 'POST',
+                  url: '/googleLogin',
+                  processData: false,
+                  data: authResult['code'],
+                  contentType: 'application/octet-stream; charset=utf-8',
+                  success: function(result) {
+                    if (result) {
+                      $('#result').html('Login Was Successful!</br>'+ result + '</br>redirecting...')
+                     setTimeout(function() {
+                      window.location.href = "/restaurants";
+                     }, 4000);
+
+                  } else if (authResult['error']) {
+                console.log('There was an error: ' + authResult['error']);
+              } else {
+                    $('#result').html('Failed to make a server-side call. Check your configuration and console.');
+                     }
+                  }
+
+              }); } }
+    </script>
+
+</body>
+
+</html>
+
