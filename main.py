@@ -18,57 +18,111 @@ app = Flask(__name__)
 dbSession = sessionmaker(bind=database.engine)
 Db = dbSession()
 
+
 @app.route('/')
 @app.route('/restaurants')
 def Restaurants():
-    if 'state' not in session:  # init all session with none values
+    # init all session with none values
+    if 'state' not in session:
         session['state'] = None
     if 'username' not in session:
         session['username'] = None
     if 'id' not in session:
         session['id'] = None
+    # getting all the restaurants from the DB
     restaurants = Db.query(database.Restaurant).all()
-    return render_template('list.html', state=session['state'], restaurants = restaurants)
+    # rendering list of restaurants
+    return render_template(
+        'list.html',
+        state=session['state'],
+        restaurants=restaurants)
+
 
 @app.route('/restaurants/<int:restaurant_id>')
 def Items(restaurant_id):
-    restaurant = Db.query(database.Restaurant).filter_by(id=restaurant_id).one()
+    restaurant = Db.query(
+        database.Restaurant).filter_by(
+        id=restaurant_id).one()
+    # getting all the items for the selected restaurant from the DB
     items = Db.query(database.MenuItem).filter_by(restaurant_id=restaurant.id)
     id = session['id']
-    return render_template('items.html', state=session['state'], items=items, restaurant=restaurant, user_id=id)
+    return render_template(
+        'items.html',
+        state=session['state'],
+        items=items,
+        restaurant=restaurant,
+        user_id=id)
+
 
 @app.route('/restaurants/<int:restaurant_id>/newitem', methods=['GET', 'POST'])
 def createMenuItem(restaurant_id):
     if request.method == 'GET':
+        # check user login state
         if session['state'] is not None:
-            return render_template('create.html', restaurant_id=restaurant_id, state=session['state'])
+            # if user is logged in then he is authorised to add menu item
+            return render_template(
+                'create.html',
+                restaurant_id=restaurant_id,
+                state=session['state'])
         else:
             return "You should login to create items"
     else:
+        # check user login state
         if session['state'] is not None:
-            restaurant = Db.query(database.Restaurant).filter_by(id=restaurant_id).one()
+            restaurant = Db.query(
+                database.Restaurant).filter_by(
+                id=restaurant_id).one()
             name = request.form['name']
             course = request.form['course']
             price = request.form['price']
             description = request.form['description']
             user_id = session['id']
-            print user_id
-            if name!='' and course!='' and price!='' and description!='':
-                newItem = database.MenuItem(user_id=user_id, course=course, name=name, price=price, restaurant=restaurant,
-                                             description=description)
+            # validating the coming data
+            if name != '' and course != ''\
+                    and price != '' and description != '':
+                newItem = database.MenuItem(
+                    user_id=user_id,
+                    course=course,
+                    name=name,
+                    price=price,
+                    restaurant=restaurant,
+                    description=description)
                 Db.add(newItem)
                 Db.commit()
-                return redirect(url_for("Items", state=session['state'], restaurant_id=restaurant.id))
+                return redirect(
+                    url_for(
+                        "Items",
+                        state=session['state'],
+                        restaurant_id=restaurant.id))
             else:
-                return render_template('create.html', error='some fields are empty!', name=name, course=course, price=price, description=description)
+                # show user empty field error in case of validation failure
+                return render_template(
+                    'create.html',
+                    error='some fields are empty!',
+                    name=name,
+                    course=course,
+                    price=price,
+                    description=description)
             print session['id']
-@app.route('/restaurants/<int:restaurant_id>/edit/<int:item_id>', methods=['GET', 'POST'])
+
+
+@app.route(
+    '/restaurants/<int:restaurant_id>/edit/<int:item_id>',
+    methods=[
+        'GET',
+        'POST'])
 def editMenuItem(restaurant_id, item_id):
-    if session['state'] != None:
+    # check user login state
+    if session['state'] is not None:
+        # get the item the user wants to edit form DB
         editedItem = Db.query(database.MenuItem).filter_by(id=item_id).one()
         if int(editedItem.user_id) == int(session['id']):
             if request.method == 'GET':
-                return render_template('edit.html', item=editedItem, restaurant_id=restaurant_id, state=session['state'])
+                return render_template(
+                    'edit.html',
+                    item=editedItem,
+                    restaurant_id=restaurant_id,
+                    state=session['state'])
             else:
                 name = request.form['name']
                 course = request.form['course']
@@ -80,20 +134,34 @@ def editMenuItem(restaurant_id, item_id):
                 editedItem.course = course
                 Db.add(editedItem)
                 Db.commit()
-                return redirect(url_for('Items', state=session['state'], restaurant_id=restaurant_id))
+                return redirect(
+                    url_for(
+                        'Items',
+                        state=session['state'],
+                        restaurant_id=restaurant_id))
         else:
             return "you can only edit your items"
     else:
         return 'You should login to edit items'
 
-@app.route('/restaurants/<int:restaurant_id>/delete/<int:item_id>', methods=['GET', 'POST'])
+
+@app.route(
+    '/restaurants/<int:restaurant_id>/delete/<int:item_id>',
+    methods=[
+        'GET',
+        'POST'])
 def deleteMenuItem(restaurant_id, item_id):
-    if session['state'] != None:
+    # check user login state
+    if session['state'] is not None:
+        # get the item the user wants to delete form DB
         item_delete = Db.query(database.MenuItem).filter_by(id=item_id).one()
         if int(item_delete.user_id) == int(session['id']):
             if request.method == 'GET':
-                return render_template('delete.html', restaurant_id=restaurant_id, item_id=item_id,
-                                   state=session['state'])
+                return render_template(
+                    'delete.html',
+                    restaurant_id=restaurant_id,
+                    item_id=item_id,
+                    state=session['state'])
             else:
                 Db.delete(item_delete)
                 Db.commit()
@@ -104,53 +172,77 @@ def deleteMenuItem(restaurant_id, item_id):
     else:
         return 'You should login to delete item'
 
+# JSON endpoint for restaurants
+
 
 @app.route('/restaurants/JSON')
 def restaurantsJSON():
     restaurants = Db.query(database.Restaurant).all()
     return jsonify(restaurants=[r.serialize for r in restaurants])
 
+# JSON endpoint for restaurant menu items
+
+
 @app.route('/restaurants/<int:restaurant_id>/JSON')
 def restaurantMenuJSON(restaurant_id):
-    restaurant = Db.query(database.Restaurant).filter_by(id=restaurant_id).one()
+    restaurant = Db.query(
+        database.Restaurant).filter_by(
+        id=restaurant_id).one()
     items = Db.query(database.MenuItem).filter_by(
-    restaurant_id=restaurant_id).all()
+        restaurant_id=restaurant_id).all()
     return jsonify(MenuItems=[i.serialize for i in items])
+
+# JSON endpoint for restaurant menu item
+
 
 @app.route('/restaurants/<int:restaurant_id>/menu/<int:menu_id>/JSON')
 def menuItemJSON(restaurant_id, menu_id):
     Menu_Item = Db.query(database.MenuItem).filter_by(id=menu_id).one()
     return jsonify(Menu_Item=Menu_Item.serialize)
 
+
 @app.route('/signup', methods=['POST', 'GET'])
 def register():
     if request.method == 'GET':
         return render_template('register.html')
     else:
+        # check user login state
         if session['state'] is None:
             if request.method == 'POST':
                 name = request.form['username']
                 password = request.form['password']
                 verify = request.form['verify']
                 email = request.form['email']
-                if name!='' and email!='' and password!='' and verify!='':
+                # validating the coming data
+                if name != '' and email != ''\
+                        and password != '' and verify != '':
                     if password == verify:
-                        newUser = database.User(name=name, password=password, email=email)
+                        newUser = database.User(
+                            name=name, password=password, email=email)
                         Db.add(newUser)
                         Db.commit()
                         session['provider'] = 'localauth'
                     else:
-                        return render_template('register.html', error='passwords does not match', username=name, email=email)
+                        return render_template(
+                            'register.html',
+                            error='passwords does not match',
+                            username=name,
+                            email=email)
                 else:
-                    return render_template('register.html', error='some fields are empty', username=name, email=email)
+                    return render_template(
+                        'register.html',
+                        error='some fields are empty',
+                        username=name,
+                        email=email)
                 return redirect(url_for('Restaurants'))
         else:
             return "You already logged in!"
 
+
 @app.route('/fbLogin', methods=['POST'])
 def fbLogin():
     print 'fb login'
-    if session['state'] == None:  # validate user state
+    if session['state'] is None:  # validate user state
         access_token = request.data  # get access token from client
         # authenticate with facebook server this token
         app_id = json.loads(open('fb_client_oAuth.json', 'r').read())[
@@ -181,9 +273,10 @@ def fbLogin():
 @app.route('/googleLogin', methods=['POST'])
 def googleLogin():
     print 'google login'
-    if (session['state'] == None):  # validate user state
+    if (session['state'] is None):  # validate user state
         code = request.data  # get google code
-        oauth_flow = flow_from_clientsecrets('google_client_oAuth.json', scope='', redirect_uri='postmessage')
+        oauth_flow = flow_from_clientsecrets(
+            'google_client_oAuth.json', scope='', redirect_uri='postmessage')
         credentials = oauth_flow.step2_exchange(code)
         access_token = credentials.access_token
         url = ('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=%s'
@@ -219,6 +312,7 @@ def googleLogin():
         print session['id']
         return redirect(url_for('Restaurants'))
 
+
 @app.route('/logout', methods=['POST', 'GET'])
 def logout():
     if request.method == 'POST':
@@ -226,7 +320,8 @@ def logout():
             access_token = session['access_token']
             facebook_id = session['id']
             # logout user from facebook
-            url = 'https://graph.facebook.com/%s/permissions?access_token=%s' % (facebook_id, access_token)
+            url = 'https://graph.facebook.com/%s/permissions?access_token=%s' % (
+                facebook_id, access_token)
             h = httplib2.Http()
             result = h.request(url, 'DELETE')[1]
             # delete user session
@@ -234,7 +329,6 @@ def logout():
             del session['username']
             del session['access_token']
             del session['id']
-
 
         elif session['provider'] == 'google' and session['state'] is not None:
             access_token = session['access_token']
@@ -247,7 +341,6 @@ def logout():
             del session['username']
             del session['access_token']
             del session['id']
-
 
         elif session['provider'] == 'localauth':
             # local authtication just delete user session
